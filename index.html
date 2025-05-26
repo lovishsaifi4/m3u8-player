@@ -1,50 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple M3U8 Player</title>
-    <!-- Video.js CSS -->
-    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        .video-js {
-            width: 640px;
-            height: 360px;
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M3U8 Player</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Video.js CSS CDN -->
+  <link href="https://unpkg.com/video.js@7/dist/video-js.min.css" rel="stylesheet">
+  <!-- Video.js JS CDN -->
+  <script src="https://unpkg.com/video.js@7/dist/video.min.js"></script>
+  <style>
+    body {
+      background-color: #f3f4f6;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark body {
+      background-color: #1f2937;
+      color: #f3f4f6;
+    }
+    .video-js {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    .playlist-item:hover {
+      background-color: #e5e7eb;
+      cursor: pointer;
+    }
+    .dark .playlist-item:hover {
+      background-color: #374151;
+    }
+  </style>
 </head>
-<body>
-    <h1>Simple M3U8 Player</h1>
-    <video
-        id="my-video"
+<body class="flex flex-col min-h-screen">
+  <!-- Header -->
+  <header class="bg-blue-600 text-white py-4">
+    <div class="container mx-auto px-4">
+      <h1 class="text-3xl font-bold">M3U8 Player</h1>
+      <p class="text-lg">Stream M3U8 playlists and videos seamlessly</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-8 flex-grow">
+    <!-- Input Section -->
+    <section class="mb-8">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <input
+          id="m3u8-url"
+          type="text"
+          placeholder="Enter M3U8 URL (e.g., https://example.com/playlist.m3u8)"
+          class="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+        >
+        <button
+          id="play-btn"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        >
+          Play
+        </button>
+        <button
+          id="clear-btn"
+          class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400"
+        >
+          Clear
+        </button>
+      </div>
+      <p id="error-message" class="text-red-600 mt-2 hidden"></p>
+    </section>
+
+    <!-- Player Section -->
+    <section class="mb-8">
+      <video-js
+        id="video-player"
         class="video-js vjs-default-skin"
         controls
         preload="auto"
         width="640"
         height="360"
-        data-setup='{}'
-    >
-        <source src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" type="application/x-mpegURL">
-        <p class="vjs-no-js">
-            To view this video please enable JavaScript, and consider upgrading to a web browser that
-            <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-        </p>
-    </video>
+      >
+        <source id="video-source" src="" type="application/x-mpegURL">
+      </video-js>
+    </section>
 
-    <!-- Video.js JavaScript -->
-    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+    <!-- Playlist Section -->
+    <section id="playlist-section" class="mb-8 hidden">
+      <h2 class="text-2xl font-semibold mb-4">Playlist</h2>
+      <ul id="playlist" class="space-y-2"></ul>
+    </section>
+
+    <!-- Recent URLs Section -->
+    <section id="recent-urls-section" class="mb-8 hidden">
+      <h2 class="text-2xl font-semibold mb-4">Recent URLs</h2>
+      <ul id="recent-urls" class="space-y-2"></ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-4">
+    <div class="container mx-auto px-4 text-center">
+      <p>Created by error</p>
+      <p>
+        <a href="https://github.com/lovishsaifi4/m3u8-player" class="underline hover:text-blue-400">
+          View on GitHub
+        </a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    // Initialize Video.js
+    const player = videojs('video-player', {
+      responsive: true,
+      fluid: true,
+      playbackRates: [0.5, 1, 1.5, 2],
+    });
+
+    // DOM Elements
+    const urlInput = document.getElementById('m3u8-url');
+    const playBtn = document.getElementById('play-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const errorMessage = document.getElementById('error-message');
+    const playlistSection = document.getElementById('playlist-section');
+    const playlist = document.getElementById('playlist');
+    const recentUrlsSection = document.getElementById('recent-urls-section');
+    const recentUrls = document.getElementById('recent-urls');
+
+    // Load recent URLs from local storage
+    let recentUrlsList = JSON.parse(localStorage.getItem('recentM3U8Urls')) || [];
+    updateRecentUrls();
+
+    // Play button click handler
+    playBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        showError('Please enter a valid M3U8 URL.');
+        return;
+      }
+
+      // Validate URL
+      if (!url.endsWith('.m3u8') && !url.includes('.m3u')) {
+        showError('URL must point to an M3U or M3U8 file.');
+        return;
+      }
+
+      // Clear previous error
+      errorMessage.classList.add('hidden');
+
+      // Set player source
+      player.src({ src: url, type: 'application/x-mpegURL' });
+
+      // Save to recent URLs
+      if (!recentUrlsList.includes(url)) {
+        recentUrlsList.unshift(url);
+        if (recentUrlsList.length > 5) recentUrlsList.pop();
+        localStorage.setItem('recentM3U8Urls', JSON.stringify(recentUrlsList));
+        updateRecentUrls();
+      }
+
+      // Try to parse playlist
+      fetchPlaylist(url);
+    });
+
+    // Clear button click handler
+    clearBtn.addEventListener('click', () => {
+      urlInput.value = '';
+      player.src('');
+      playlistSection.classList.add('hidden');
+      playlist.innerHTML = '';
+      errorMessage.classList.add('hidden');
+    });
+
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+    }
+
+    // Fetch and parse M3U8 playlist
+    async function fetchPlaylist(url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch playlist.');
+        const text = await response.text();
+        const lines = text.split('\n');
+        const streams = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].startsWith('#EXTINF:')) {
+            const title = lines[i].split(',')[1]?.trim() || 'Stream ' + (streams.length + 1);
+            const streamUrl = lines[i + 1]?.trim();
+            if (streamUrl && streamUrl.endsWith('.m3u8')) {
+              streams.push({ title, url: streamUrl });
+            }
+          }
+        }
+
+        if (streams.length > 0) {
+          playlistSection.classList.remove('hidden');
+          playlist.innerHTML = streams
+            .map(
+              (stream, index) =>
+                `<li class="playlist-item p-2 bg-gray-100 dark:bg-gray-800 rounded" data-url="${stream.url}">
+                  ${stream.title}
+                </li>`
+            )
+            .join('');
+
+          // Add click handlers for playlist items
+          document.querySelectorAll('.playlist-item').forEach((item) => {
+            item.addEventListener('click', () => {
+              const streamUrl = item.dataset.url;
+              player.src({ src: streamUrl, type: 'application/x-mpegURL' });
+              urlInput.value = streamUrl;
+              if (!recentUrlsList.includes(streamUrl)) {
+                recentUrlsList.unshift(streamUrl);
+                if (recentUrlsList.length > 5) recentUrlsList.pop();
+                localStorage.setItem('recentM3U8Urls', JSON.stringify(recentUrlsList));
+                updateRecentUrls();
+              }
+            });
+          });
+        } else {
+          playlistSection.classList.add('hidden');
+        }
+      } catch (error) {
+        showError('Error loading playlist: ' + error.message);
+      }
+    }
+
+    // Update recent URLs list
+    function updateRecentUrls() {
+      if (recentUrlsList.length > 0) {
+        recentUrlsSection.classList.remove('hidden');
+        recentUrls.innerHTML = recentUrlsList
+          .map(
+            (url, index) =>
+              `<li class="p-2 bg-gray-100 dark:bg-gray-800 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" data-url="${url}">
+                ${url}
+              </li>`
+          )
+          .join('');
+
+        // Add click handlers for recent URLs
+        document.querySelectorAll('#recent-urls li').forEach((item) => {
+          item.addEventListener('click', () => {
+            urlInput.value = item.dataset.url;
+            player.src({ src: item.dataset.url, type: 'application/x-mpegURL' });
+            fetchPlaylist(item.dataset.url);
+          });
+        });
+      } else {
+        recentUrlsSection.classList.add('hidden');
+      }
+    }
+
+    // Player error handling
+    player.on('error', () => {
+      showError('Error playing stream. Check the URL or try another stream.');
+    });
+
+    // Dark mode toggle
+    const darkModeToggle = document.createElement('button');
+    darkModeToggle.textContent = 'Toggle Dark Mode';
+    darkModeToggle.className = 'fixed top-4 right-4 bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400';
+    document.body.appendChild(darkModeToggle);
+    darkModeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+    });
+  </script>
 </body>
 </html>
