@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple M3U8 Player</title>
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .video-js {
+            width: 640px;
+            height: 360px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple M3U8 Player</h1>
+    <video
+        id="my-video"
+        class="video-js vjs-default-skin"
+        controls
+        preload="auto"
+        width="640"
+        height="360"
+        data-setup='{}'
+    >
+        <source src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" type="application/x-mpegURL">
+        <p class="vjs-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a web browser that
+            <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+        </p>
+    </video>
+
+    <!-- Video.js JavaScript -->
+    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+</body>
+</html>
